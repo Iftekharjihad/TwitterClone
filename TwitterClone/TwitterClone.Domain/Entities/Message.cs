@@ -1,12 +1,47 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 namespace TwitterClone.Domain.Entities
 {
-    internal class Message
+    public class Message
     {
+        private Guid _id;
+        private Guid _senderId;
+        private Guid _receiverId;
+        private string _content;
+        private bool _isRead;
+        private DateTime _sendAt;
+
+        public Message()
+        {
+            _id = Guid.NewGuid();
+            _isRead = false;
+            _sendAt = DateTime.UtcNow;
+        }
+        public Guid Id
+        {
+            get { return _id; }
+        }
+        public Guid SenderId
+        {
+            get { return _senderId; }
+        }
+        public Guid ReceiverId
+        {
+            get { return _receiverId; }
+        }
+        public string Content
+        {
+            get { return _content; }
+            set { _content = value; }
+        }
+        public bool IsRead
+        {
+            get { return _isRead; }
+            set { _isRead = value; }
+        }
+        public DateTime SendAt
+        {
+            get { return _sendAt; }
+        }
     }
 }
