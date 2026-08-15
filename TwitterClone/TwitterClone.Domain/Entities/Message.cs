@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
+﻿
 namespace TwitterClone.Domain.Entities
 {
     public class Message
@@ -9,13 +8,16 @@ namespace TwitterClone.Domain.Entities
         private Guid _receiverId;
         private string _content;
         private bool _isRead;
-        private DateTime _sendAt;
+        private DateTime _sentAt;
+        private DateTime _createdAt;
+        private DateTime _modifiedAt;
+        private Guid _createdBy;
+        private Guid _modifiedBy;
 
         public Message()
         {
             _id = Guid.NewGuid();
-            _isRead = false;
-            _sendAt = DateTime.UtcNow;
+            _createdAt = DateTime.UtcNow;
         }
         public Guid Id
         {
@@ -24,24 +26,46 @@ namespace TwitterClone.Domain.Entities
         public Guid SenderId
         {
             get { return _senderId; }
+            set { _senderId = value; }
         }
         public Guid ReceiverId
         {
             get { return _receiverId; }
+            set { _receiverId = value; }
         }
         public string Content
         {
             get { return _content; }
             set { _content = value; }
         }
+        public DateTime SentAt
+        {
+            get { return _sentAt; }
+            set { _sentAt = value; }
+        }
         public bool IsRead
         {
             get { return _isRead; }
             set { _isRead = value; }
         }
-        public DateTime SendAt
+        public DateTime CreatedAt
         {
-            get { return _sendAt; }
+            get { return _createdAt; }
+        }
+        public DateTime ModifiedAt
+        {
+            get { return _modifiedAt; }
+            set { _modifiedAt = value; }
+        }
+        public Guid CreatedBy
+        {
+            get { return _createdBy; }
+            set { _createdBy = value; }
+        }
+        public Guid ModifiedBy
+        {
+            get { return _modifiedBy; }
+            set { _modifiedBy = value; }
         }
     }
 }
