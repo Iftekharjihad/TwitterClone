@@ -2,13 +2,21 @@
 {
     public class User : BaseEntity, IFollowable, INotifiable
     {
+        private string _firstName;
+        private string _lastName;
+        private string _email;
+        private List<Guid> _followers = new List<Guid>();
+        private List<Guid> _incomingNotifications = new List<Guid>();
         public User() : base(Guid.NewGuid())
         {
             
         }
-        private string _firstName;
-        private string _lastName;
-        private string _email;
+        public User(Guid id, string email, string firstName, string lastName, DateTime createdAt, Guid createdBy) : base(id)
+        {
+            Email = email;
+            FirstName = firstName;
+            LastName = lastName;
+        }
         public string FirstName
         {
             get { return _firstName; }
@@ -24,8 +32,7 @@
             get { return _email; }
             set { _email = value; }
         }
-        private List<Guid> _followers = new List<Guid>();
-        private List<Guid> _incomingNotifications = new List<Guid>();
+        
         public override string DescribeRecord()
         {
             var baseRecord = base.DescribeRecord();
