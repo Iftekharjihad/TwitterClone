@@ -1,5 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
+using TwitterClone.Api.Data;
+using TwitterClone.Api.Dtos;
 using TwitterClone.Domain.Entities;
 
 namespace TwitterClone.Api.Controllers
@@ -8,32 +10,111 @@ namespace TwitterClone.Api.Controllers
     [ApiController]
     public class TwittersController : ControllerBase
     {
-        private readonly IConfiguration _configuration;
-        public TwittersController(IConfiguration configuration)
+        private readonly TweetRepository _tweetRepository;
+        private readonly UserRepository _userRepository;
+        public TwittersController(TweetRepository tweetRepository, UserRepository userRepository)
         {
-            _configuration = configuration;
+            _tweetRepository = tweetRepository;
+            _userRepository = userRepository;
         }
-        //public void GetTweet()
-        //{
-        //    var connectionString = _configuration.GetValue<string>("Logging:LogLevel:Default");
-        //}
+        // /api/twitters
         [HttpGet]
-        public IActionResult GetTweets()
+        public IActionResult GetTweets([FromQuery] Guid? userId)
         {
-            var tweets = new List<Tweet>
+            List<Tweet> tweets;
+            if (userId.HasValue)
             {
-                new Tweet("My First Tweet")
-                {
-                    UserId = Guid.NewGuid(),
-                    Content = "This is Content1",
-                },
-                new Tweet("My Second Tweet")
-                {
-                    UserId = Guid.NewGuid(),
-                    Content = "This is Content2",
-                },
+                tweets = _tweetRepository.GetTweetByUserId(userId.Value);
+            }
+            else
+            {
+                tweets = _tweetRepository.GetTweets();
+            }
+            var tweetDtos = tweets.Select(tweet => new TweetDto
+            {
+                Id = tweet.Id,
+                UserId = tweet.UserId,
+                Content = tweet.Content
+            });
+            return Ok(tweetDtos);
+        }
+        // GET /api/tweets/{id}
+        [HttpGet("{id}")]
+        public IActionResult GetTweetById([FromRoute] Guid id)
+        {
+            var tweet = _tweetRepository.GetTweetById(id);
+            if (tweet == null)
+            {
+                return NotFound();
+            }
+            var tweetDto = new TweetDto
+            {
+                Id = tweet.Id,
+                UserId = tweet.UserId,
+                Content = tweet.Content
             };
-            return Ok(tweets);
+            return Ok(tweetDto);
+        }
+        // POST /api/tweets
+        [HttpPost]
+        public IActionResult CreateTweet([FromBody] CreateTweetDto createTweetDto)
+        {
+            if(string.IsNullOrWhiteSpace(createTweetDto.Content))
+            {
+                return BadRequest("Content is required.");
+            }
+            var user = _userRepository.GetUserById(createTweetDto.UserId);
+            if (user == null)
+            {
+                return BadRequest("User does not exist.");
+            }
+            var tweet = new Tweet(createTweetDto.Content)
+            {
+                UserId = createTweetDto.UserId
+            };
+            _tweetRepository.AddTweet(tweet);
+            var tweetDto = new TweetDto
+            {
+                Id = tweet.Id,
+                UserId = tweet.UserId,
+                Content = tweet.Content
+            };
+            return Ok(tweetDto);
+        }
+        // PUT /api/tweets/{id}
+        [HttpPut("{id}")]
+        public IActionResult UpdateTweet([FromRoute] Guid id, [FromBody] UpdateTweetDto updateTweetDto)
+        {
+            if(string.IsNullOrWhiteSpace(updateTweetDto.Content))
+            {
+                return BadRequest("Content is required.");
+            }
+            var tweet = _tweetRepository.GetTweetById(id);
+            if (tweet == null)
+            {
+                return NotFound();
+            }
+            tweet.Content = updateTweetDto.Content;
+            _tweetRepository.UpdateTweet(tweet);
+            var tweetDto = new TweetDto
+            {
+                Id = tweet.Id,
+                UserId = tweet.UserId,
+                Content = tweet.Content
+            };
+            return Ok(tweetDto);
+        }
+        // DELETE /api/tweets/{id}
+        [HttpDelete("{id}")]
+        public IActionResult DeleteTweet([FromRoute] Guid id)
+        {
+            var tweet = _tweetRepository.GetTweetById(id);
+            if (tweet == null)
+            {
+                return NotFound();
+            }
+            var isDeleted = _tweetRepository.DeleteTweet(tweet);
+            return Ok(isDeleted);
         }
     }
 }
