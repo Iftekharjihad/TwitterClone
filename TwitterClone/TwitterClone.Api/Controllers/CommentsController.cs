@@ -25,5 +25,27 @@ namespace TwitterClone.Api.Controllers
                 },
             });
         }
+        // /api/comments
+        [HttpPost]
+        public IActionResult CreateComment()
+        {
+            var newComment = new
+            {
+                CommentId = Guid.NewGuid(),
+                Content = "This is a new comment.",
+            };
+            return Ok(newComment);
+        }
+        // /api/comments/{id}
+        [HttpPut("{id}")]
+        public IActionResult UpdateComment([FromRoute] Guid id)
+        {
+            var updatedComment = new
+            {
+                CommentId = id,
+                Content = "This comment has been updated.",
+            };
+            return Ok(updatedComment);
+        }
     }
 }
