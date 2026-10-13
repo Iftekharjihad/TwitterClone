@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 using TwitterClone.Api.Data;
-using TwitterClone.Api.Dtos;
+using TwitterClone.Application.Dtos;
+using TwitterClone.Application.Interfaces;
 using TwitterClone.Domain.Entities;
 
 namespace TwitterClone.Api.Controllers
@@ -12,122 +14,94 @@ namespace TwitterClone.Api.Controllers
     //[Authorize]
     public class UsersController : ControllerBase
     {
-        private readonly UserRepository _userRepository;
+        private readonly IUserService _userService;
         public UsersController(
-            UserRepository userRepository)
+            IUserService userService)
         {
-            _userRepository = userRepository;
+            _userService = userService;
         }
         // /api/users
         [HttpGet]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
         public IActionResult GetUsers()
         {
-            var users = _userRepository.GetUsers();
-            return Ok(users.Select(user => new UserDto
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email
-            }));
+            return Ok(_userService.GetUsers());
         }
 
-        // /api/users
+        // POST /api/users
         [HttpPost]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public IActionResult CreateUser([FromBody] CreateUserDto createUserDto)
         {
-            if(string.IsNullOrWhiteSpace(createUserDto.FirstName) ||
-               string.IsNullOrWhiteSpace(createUserDto.LastName) || 
-               string.IsNullOrWhiteSpace(createUserDto.Email))
+            var createdUser = _userService.CreateUser(createUserDto);
+            if(createdUser == null)
             {
-                return BadRequest("All fields are required.");
+                return Conflict($"User with email '{createUserDto.Email}' already exists.");
             }
-            var existingUser = _userRepository.GetUserByEmail(createUserDto.Email);
-            if (existingUser != null)
-            {
-                return BadRequest("A user with this email already exists.");
-            }
-            var createdUser = _userRepository.AddUser(new User()
-            {
-                FirstName = createUserDto.FirstName,
-                LastName = createUserDto.LastName,
-                Email = createUserDto.Email
-            });
-            return Ok(new UserDto
-            {
-                Id = createdUser.Id,
-                FirstName = createdUser.FirstName,
-                LastName = createdUser.LastName,
-                Email = createdUser.Email
-            });
+            return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
         }
 
-        // /api/users/{id}
+        // GET /api/users/{id}
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetUserById([FromRoute] Guid id)
         {
-            var user = _userRepository.GetUserById(id);
+            var user = _userService.GetUserById(id);
             if(user == null)
             {
-                return NotFound($"User with ID {id} not found.");
+                return NotFound();
             }
-            return Ok(new UserDto
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email
-            });
+            return Ok(user);
         }
 
         // PUT /api/users/{id}
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult UpdateUser([FromRoute] Guid id, [FromBody] UpdateUserDto updateUserDto)
         {
-            var user = _userRepository.GetUserById(id);
+            var user = _userService.UpdateUser(id, updateUserDto);
             if (user == null)
             {
-                return NotFound($"User with ID {id} not found.");
+                return NotFound();
             }
 
-            user.FirstName = updateUserDto.FirstName;
-            user.LastName = updateUserDto.LastName;
-
-            _userRepository.UpdateUser(user);
-            return Ok(new UserDto
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Email = user.Email
-            });
+            return Ok(user);
         }
 
         // PATCH /api/users/{id}/phone-number
         [HttpPatch("{id}/phone-number")]
-        public IActionResult UpdateUserPhoneNumber([FromRoute] Guid id, [FromBody] string phoneNumber)
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult UpdateUserPhoneNumber([FromRoute] Guid id, [FromBody,Required, Phone] string phoneNumber)
         {
-            return Ok(new
+            var user = _userService.UpdateUserPhoneNumber(id, phoneNumber);
+            if(user == null)
             {
-                UserId = id,
-                UserName = "updateduser" + id.ToString(),
-                PhoneNumber = phoneNumber
-            });
+                return NotFound();
+            }
+            return Ok(user);
         }
 
         // DELETE /api/users/{id}
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult DeleteUser([FromRoute] Guid id)
         {
-            var user = _userRepository.GetUserById(id);
-            if (user == null)
+            var isDeleted = _userService.DeleteUser(id);
+            if (isDeleted == false)
             {
-                return NotFound($"User with ID {id} not found.");
+                return NotFound();
             }
-            var isDeleted = _userRepository.DeleteUser(user);
-            return Ok(isDeleted);
+            return NoContent();
         }
     }
 }
